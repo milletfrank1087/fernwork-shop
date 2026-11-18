@@ -1,0 +1,11 @@
+{
+  "name": "fernwork",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fernwork: a static home & garden storefront. Zero dependencies.",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node build.js && node server.js",
+    "serve": "node server.js"
+  }
+}

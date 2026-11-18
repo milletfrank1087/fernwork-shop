@@ -320,7 +320,11 @@
       const msg = $('.signup-form__msg', form);
       msg.hidden = false;
       if (!validEmail(input.value)) { msg.textContent = 'Please enter a valid email address.'; input.focus(); return; }
-      msg.textContent = 'Welcome to the club! Watch your inbox for care tips.';
+      // no backend: the address goes to the monitored inbox as a subscription request
+      const to = form.dataset.signupTo;
+      const href = `mailto:${to}?subject=${encodeURIComponent(form.dataset.brand + ' newsletter sign-up')}&body=${encodeURIComponent('Please add ' + input.value + ' to the list.')}`;
+      msg.innerHTML = `Thanks — ${input.value} is on the list. If no email opens, send it to <a href="${href}">${to}</a>.`;
+      window.location.href = href;
       form.reset();
     });
   });
@@ -331,9 +335,19 @@
       e.preventDefault();
       const msg = $('.contact-form__msg', contact);
       msg.hidden = false;
-      if (!validEmail(contact.elements.email.value)) { msg.textContent = 'Please enter a valid email address.'; contact.elements.email.focus(); return; }
-      msg.textContent = "Thanks for contacting us. We'll get back to you as soon as possible.";
-      contact.reset();
+      const email = contact.elements.email.value;
+      if (!validEmail(email)) { msg.textContent = 'Please enter a valid email address.'; contact.elements.email.focus(); return; }
+      const body = contact.elements.body.value.trim();
+      if (!body) { msg.textContent = 'Please add a comment.'; contact.elements.body.focus(); return; }
+      // no backend: hand the message to the visitor's mail client, addressed to the monitored inbox
+      const to = contact.dataset.contactTo;
+      const subject = `${contact.dataset.brand} enquiry from ${contact.elements.name.value || email}`;
+      const lines = [`Name: ${contact.elements.name.value || '-'}`, `Email: ${email}`];
+      if (contact.elements.phone && contact.elements.phone.value) lines.push(`Phone: ${contact.elements.phone.value}`);
+      lines.push('', body);
+      const href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join('\n'))}`;
+      msg.innerHTML = `Opening your email app. If nothing happens, mail <a href="${href}">${to}</a> directly.`;
+      window.location.href = href;
     });
   }
 

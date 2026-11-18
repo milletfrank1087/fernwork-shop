@@ -17,13 +17,19 @@ const DIST = path.join(__dirname, 'dist');
 /*  Site data                                                                 */
 /* -------------------------------------------------------------------------- */
 
+const BUSINESS = JSON.parse(fs.readFileSync(path.join(SRC, 'data', 'business.json'), 'utf8'));
+const B = BUSINESS;
+
 const SITE = {
-  name: 'Fernwork',
-  email: 'hello@fernwork.example',
-  company: 'Fernwork Home &amp; Garden LLC',
-  address: '123 Greenhouse Lane, Portland, OR 97201, USA',
+  name: "Fernwork",
+  email: BUSINESS.email,
+  company: BUSINESS.legalName,
+  address: BUSINESS.address,
   year: new Date().getFullYear(),
-  desc: 'Houseplants, planters, vases, lanterns and baskets for calm, green homes.',
+  phone: BUSINESS.phone,
+  legalName: BUSINESS.legalName,
+  bankFacing: BUSINESS.bankFacing,
+  desc: "Houseplants, planters, vases, lanterns and baskets for calm, green homes.",
 };
 
 const products = require('./src/data/products.json').products.map((p) => ({
@@ -54,16 +60,20 @@ const collections = [
 const policies = fs
   .readdirSync(path.join(SRC, 'content', 'policies'))
   .map((f) => JSON.parse(fs.readFileSync(path.join(SRC, 'content', 'policies', f), 'utf8')));
-const policyOrder = ['privacy-policy', 'terms-of-service', 'shipping-policy', 'refund-policy', 'contact-information', 'legal-notice'];
+const policyOrder = [
+  'privacy-policy', 'terms-of-service', 'shipping-policy', 'refund-policy', 'payments-and-billing',
+  'contact-information', 'legal-notice', 'cookies-and-privacy-choices', 'about-the-store', 'common-questions',
+];
 policies.sort((a, b) => policyOrder.indexOf(a.slug) - policyOrder.indexOf(b.slug));
 
 const faqs = [
+  ['What will the charge on my statement look like?', `Charges from this store appear as ${B.statementDescriptor}. Compare the amount and date with your order confirmation; if they do not match, email ${B.email} and we will trace it.`],
   ['How do I choose the right size?', "Every product page lists approximate dimensions in the specifications. Measure the space where you want to place the item, and remember that plants will grow and spread over time. If you're unsure, feel free to contact us."],
-  ['How long does shipping take?', "Orders are packed within 1–2 business days. Standard delivery within the United States then usually takes 3–7 business days, and you'll receive a confirmation email with tracking information when available."],
+  ['How long does shipping take?', `We prepare orders in ${B.handlingDays} business days; carrier transit then usually takes ${B.transitDays} business days, so expect ${B.totalDeliveryDays} business days in total. Orders placed after ${B.cutoff} enter processing the next business day. See Shipping and delivery.`],
   ['How much does shipping cost?', "Shipping costs are calculated at checkout based on your delivery address and the items in your order. You'll see the available shipping options and charges before completing your purchase."],
-  ['Can I return or exchange an item?', "You can request a return within 30 days of delivery for unused items in their original condition. Live plants can't be returned for a change of mind, but if one arrives damaged please contact us within 48 hours with photos. See our Returns & Refunds Policy for details."],
+  ['Can I return or exchange an item?', "You can return unused items in their original packaging within 30 days of delivery, and send them back within 14 days of asking. A plant you have clearly repotted or pruned counts as used. If something arrives damaged or wrong, email us with the order number and a description; a photo helps. See Returns, refunds and order cancellations."],
   ['How do you pack plants and fragile items?', "Plants ship in protective sleeves and sturdy boxes, early in the week to limit time in transit. Ceramics, glass and lanterns are wrapped individually and packed with protective padding."],
-  ['How can I contact Fernwork?', "We're happy to help with product questions, plant care advice, order concerns or general inquiries. Simply visit our Contact Us page and send us a message."],
+  ['How can I contact Fernwork?', `Email ${B.email} or call ${B.phone} during ${B.supportHours}; we usually reply ${B.responseTime}.` + " We can help with product questions, plant care advice, order concerns or general inquiries. Simply visit our Contact Us page and send us a message."],
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -136,7 +146,7 @@ function signup(R) {
   <div class="signup__media"><img src="${R}assets/img/newsletter.webp" alt="" width="1600" height="638" loading="lazy" decoding="async"></div>
   <div class="signup__content">
     <h2 class="h2" id="signup-title">Join the Fernwork Garden Club</h2>
-    <form class="signup-form" data-signup novalidate>
+    <form class="signup-form" data-signup data-signup-to="${BUSINESS.email}" data-brand="${SITE.name}" novalidate>
       <label class="visually-hidden" for="signup-email">Email</label>
       <input id="signup-email" type="email" name="email" placeholder="Email address" autocomplete="email" autocapitalize="off" autocorrect="off" required>
       <button type="submit" aria-label="Sign up">${I.arrow}</button>
@@ -165,20 +175,25 @@ function footer(R) {
     ${col('Help', [
       ['Contact Us', `${R}policies/contact-information/`],
       ['FAQ', `${R}pages/faq/`],
-      ['Shipping Policy', `${R}policies/shipping-policy/`],
+      ['Shipping &amp; Delivery', `${R}policies/shipping-policy/`],
       ['Returns &amp; Refunds', `${R}policies/refund-policy/`],
+      ['Payments &amp; Billing', `${R}policies/payments-and-billing/`],
+      ['Common Questions', `${R}policies/common-questions/`],
     ])}
     ${col('About', [
       ['Our Story', `${R}pages/about/`],
       ['Privacy Policy', `${R}policies/privacy-policy/`],
       ['Terms of Service', `${R}policies/terms-of-service/`],
-      ['Contact Us', `${R}pages/contact/`],
+      ['Contact Details', `${R}policies/contact-information/`],
+      ['About the Store', `${R}policies/about-the-store/`],
     ])}
     <div class="footer-info">
       <h4 class="footer-info__title">Business Information</h4>
-      <p>${SITE.company}</p>
-      <p>${SITE.address}</p>
-      <p><a href="mailto:${SITE.email}">${SITE.email}</a></p>
+      <p>${BUSINESS.legalName}</p>
+      <p>${BUSINESS.address}</p>
+      <p><a href="mailto:${BUSINESS.email}">${BUSINESS.email}</a></p>
+      <p><a href="tel:${BUSINESS.phone.replace(/[^\d+]/g, '')}">${BUSINESS.phone}</a></p>
+      <p>${BUSINESS.supportHours}</p>
     </div>
   </div>
   <div class="footer__utilities">
@@ -469,7 +484,8 @@ function aboutPage() {
     <div class="band__text">
       <h1 class="h2">A Little Green Makes Every Room Feel Like Home.</h1>
       <div class="rte rte--narrow">
-        <p>Some of the best parts of a home are the small ones: a plant leaning toward the window, a lantern glowing on the porch, a basket by the sofa that always has a throw in it.</p>
+        <p class="about-lede">${SITE.name} is a small online shop for houseplants, planters, vases, lanterns and baskets, sold to customers across ${B.serviceArea}.</p>
+        <p> are the small ones: a plant leaning toward the window, a lantern glowing on the porch, a basket by the sofa that always has a throw in it.</p>
         <p>Those quiet details are what inspire <strong>Fernwork</strong>.</p>
         <p>We believe a home should feel calm, lived-in and a little bit alive. That's why we bring together plants, planters, vases, lanterns and baskets chosen for natural materials, honest craftsmanship and the way they look as they age.</p>
         <p><strong>That's where Fernwork comes in.</strong></p>
@@ -478,11 +494,13 @@ function aboutPage() {
         <p>Whether you're starting your first windowsill garden or styling a whole room, we're happy to be a small part of it.</p>
         <p><strong>Soft Light. Green Things.</strong></p>
         <p><em>— The Fernwork Team</em></p>
+        <h3>Who you are buying from</h3>
+        <p><strong>${BUSINESS.legalName}</strong>, formed in ${BUSINESS.state}, operates ${SITE.name} and handles orders, billing and returns. Our mailing address is ${BUSINESS.address}. Reach us at <a href="mailto:${BUSINESS.email}">${BUSINESS.email}</a> or <a href="tel:${BUSINESS.phone.replace(/[^\d+]/g, '')}">${BUSINESS.phone}</a> during ${BUSINESS.supportHours}.</p>
       </div>
     </div>
   </div>
 </section>`;
-  return layout({ depth, title: `About ${SITE.name} | Plants & Home Decor`, desc: 'Learn the story behind Fernwork and our plants, planters, vases, lanterns and baskets for calm, green homes.', active: 'about', body });
+  return layout({ depth, title: `About ${SITE.name}`, desc: `Who we are, how we ship and how to reach ${SITE.name}.`, active: 'about', body });
 }
 
 function faqPage() {
@@ -509,15 +527,18 @@ function contactPage() {
         <p>At Fernwork, we're here to make shopping for your home simple and stress-free.</p>
         <p>Whether you have questions about plants, sizing, shipping, or an existing order, we're always happy to help.</p>
         <p>Send us a message using the contact form below, and our team will get back to you as soon as possible.</p>
-        <p><strong>Company Name:</strong> ${SITE.company}</p>
-        <p><strong>Business Address:</strong> ${SITE.address}</p>
-        <p><strong>Email:</strong> <a href="mailto:${SITE.email}">${SITE.email}</a></p>
+        <p><strong>Company Name:</strong> ${BUSINESS.legalName}</p>
+        <p><strong>Business Address:</strong> ${BUSINESS.address}</p>
+        <p><strong>Email:</strong> <a href="mailto:${BUSINESS.email}">${BUSINESS.email}</a></p>
+        <p><strong>Phone:</strong> <a href="tel:${BUSINESS.phone.replace(/[^\d+]/g, '')}">${BUSINESS.phone}</a></p>
+        <p><strong>Hours:</strong> ${BUSINESS.supportHours}</p>
       </div>
     </div>
   </div>
 </section>
 <section class="contact-form-section">
-  <form class="contact-form" data-contact novalidate>
+  <p class="contact-form__intro">Send a message and it opens in your email app, ready to go to ${BUSINESS.email}. Usual first reply: ${BUSINESS.responseTime}.</p>
+  <form class="contact-form" data-contact data-contact-to="${BUSINESS.email}" data-brand="${SITE.name}" novalidate>
     <div class="contact-form__row">
       ${field('cf-name', 'name', 'Name', 'text', 'autocomplete="name"')}
       ${field('cf-email', 'email', 'Email<span aria-hidden="true">*</span>', 'email', 'autocomplete="email" autocapitalize="off" spellcheck="false" required')}
@@ -628,4 +649,23 @@ function build() {
   console.log(`Built ${pages} pages into dist/ in ${Date.now() - t0}ms`);
 }
 
+function assertBankReady() {
+  if (!SITE.bankFacing) return;
+  const problems = [];
+  for (const [key, value] of Object.entries(SITE)) {
+    if (typeof value === 'string' && /\{\{|\.example\b/.test(value)) problems.push(`${key}: ${value}`);
+  }
+  if (!SITE.phone) problems.push('phone is empty');
+  if (!SITE.legalName) problems.push('legalName is empty');
+  const policyText = policies.map((p) => p.html).join(' ');
+  if (/\{\{/.test(policyText)) problems.push('policies contain {{placeholders}}');
+  if (/\.example\b/.test(policyText)) problems.push('policies contain .example addresses');
+  if (/demonstration storefront/i.test(policyText)) problems.push('policies still call the store a demonstration');
+  if (problems.length) {
+    console.error('\nBank-facing shop is not ready:\n  - ' + problems.join('\n  - ') + '\n');
+    process.exit(1);
+  }
+}
+
+assertBankReady();
 build();

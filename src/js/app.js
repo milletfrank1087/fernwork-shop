@@ -64,6 +64,7 @@
     const total = lines.reduce((n, l) => n + l.p.price * l.q, 0);
 
     $$('[data-cart-count]').forEach((b) => { b.textContent = count > 99 ? '99+' : count; b.hidden = count === 0; });
+    renderCheckout();
 
     const title = $('#cart-title'), body = $('[data-cart-body]'), foot = $('[data-cart-footer]');
 
@@ -95,7 +96,7 @@
     foot.innerHTML = `
       <div class="cart-total"><span>Estimated total</span><span>${money(total)}</span></div>
       <p class="cart-note">Taxes and shipping calculated at checkout.</p>
-      <button class="btn cart-checkout" type="button" data-checkout>Checkout</button>`;
+      <a class="btn cart-checkout" href="${ROOT}checkout/">Checkout</a>`;
     foot.hidden = false;
   }
 
@@ -267,8 +268,7 @@
     if (hit('[data-search-clear]')) { searchInput.value = ''; renderSearch(''); searchInput.focus(); return; }
     if (hit('[data-recent-clear]')) { store.set('fw_recent', []); renderSearch(searchInput.value.trim()); return; }
 
-    if (hit('[data-account]')) { e.preventDefault(); toast("Customer accounts aren't available in this demo store."); return; }
-    if (hit('[data-checkout]')) { toast('Checkout is disabled — this is a demo storefront.'); return; }
+    if (hit('[data-account]')) { e.preventDefault(); toast('Accounts are not available yet — please check out as a guest.'); return; }
 
     if ((el = hit('[data-quick-add]'))) {
       e.preventDefault();
@@ -349,6 +349,155 @@
       msg.innerHTML = `Opening your email app. If nothing happens, mail <a href="${href}">${to}</a> directly.`;
       window.location.href = href;
     });
+  }
+
+  /* ---------------------------------------------------------- checkout */
+  const checkoutForm = $('[data-checkout-form]');
+  function renderCheckout() {
+    if (!checkoutForm) return;
+    const linesEl = $('[data-checkout-lines]');
+    const emptyEl = $('[data-checkout-empty]');
+    const totalsEl = $('[data-checkout-totals]');
+    const payBtn = $('[data-pay-button]');
+    if (!linesEl || !totalsEl || !payBtn) return;
+
+    const lines = cart.read().map((l) => ({ p: bySlug[l.h], q: l.q }));
+    const subtotal = lines.reduce((n, l) => n + l.p.price * l.q, 0);
+    const deliveryEl = $('input[name="delivery"]:checked', checkoutForm);
+    const shipping = lines.length && deliveryEl ? Number(deliveryEl.dataset.delivery || 0) : 0;
+    const state = checkoutForm.elements.state ? checkoutForm.elements.state.value : '';
+    const taxRate = state === 'MI' ? 0.06 : 0;
+    const tax = Math.round(subtotal * taxRate * 100) / 100;
+    const total = subtotal + shipping + tax;
+
+    linesEl.innerHTML = lines.map(({ p, q }) => `
+      <div class="co-line">
+        <img src="${ROOT}${p.img}" alt="${esc(p.title)}" width="64" height="64">
+        <div class="co-line__info">
+          <p class="co-line__title">${esc(p.title)}</p>
+          <div class="qty qty--sm">
+            <button type="button" aria-label="Decrease quantity of ${esc(p.title)}" data-line-dec="${p.handle}">−</button>
+            <input type="number" value="${q}" min="1" max="99" aria-label="Quantity of ${esc(p.title)}" data-line-input="${p.handle}">
+            <button type="button" aria-label="Increase quantity of ${esc(p.title)}" data-line-inc="${p.handle}">+</button>
+          </div>
+          <button class="co-line__remove" type="button" data-line-remove="${p.handle}">Remove</button>
+        </div>
+        <b>${money(p.price * q)}</b>
+      </div>`).join('');
+    emptyEl.hidden = lines.length > 0;
+    totalsEl.innerHTML = `
+      <div><dt>Subtotal</dt><dd>${money(subtotal)}</dd></div>
+      <div><dt>Shipping</dt><dd>${lines.length ? money(shipping) : '—'}</dd></div>
+      <div><dt>Estimated tax${taxRate ? ' (MI 6%)' : ''}</dt><dd>${money(tax)}</dd></div>
+      <div class="co-totals__total"><dt>Total</dt><dd>${money(total)}</dd></div>`;
+    payBtn.disabled = !lines.length;
+    payBtn.textContent = lines.length ? `Pay ${money(total)}` : 'Pay now';
+  }
+
+  if (checkoutForm) {
+    const payBtn = $('[data-pay-button]');
+    const maintenance = $('[data-checkout-maintenance]');
+    const formMsg = $('[data-checkout-msg]');
+    const errFor = (name) => $(`[data-error-for="${name}"]`, checkoutForm);
+    const setError = (input, message) => {
+      const box = errFor(input.name);
+      if (box) { box.textContent = message || ''; box.hidden = !message; }
+      input.setAttribute('aria-invalid', message ? 'true' : 'false');
+      input.classList.toggle('is-invalid', !!message);
+      return !message;
+    };
+    const digits = (v) => String(v || '').replace(/\D/g, '');
+    const luhnOk = (num) => {
+      let sum = 0, dbl = false;
+      for (let i = num.length - 1; i >= 0; i--) {
+        let d = Number(num[i]);
+        if (dbl) { d *= 2; if (d > 9) d -= 9; }
+        sum += d; dbl = !dbl;
+      }
+      return num.length >= 12 && sum % 10 === 0;
+    };
+    const validate = (input) => {
+      const v = input.value.trim();
+      const name = input.name;
+      if (input.disabled) return true;
+      if (name === 'address2') return setError(input, '');
+      if (!v) return setError(input, 'This field is required.');
+      if (name === 'email' && !validEmail(v)) return setError(input, 'Enter a valid email address.');
+      if (name === 'phone' && digits(v).length < 10) return setError(input, 'Enter a valid phone number.');
+      if ((name === 'postal' || name === 'billingPostal') && !/^\d{5}(-\d{4})?$/.test(v)) return setError(input, 'Enter a valid ZIP code.');
+      if (name === 'cardNumber' && !luhnOk(digits(v))) return setError(input, 'Enter a valid card number.');
+      if (name === 'cardExpiry') {
+        const m = v.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+        if (!m) return setError(input, 'Use MM/YY.');
+        const exp = new Date(2000 + Number(m[2]), Number(m[1]), 0, 23, 59, 59);
+        if (exp < new Date()) return setError(input, 'This card has expired.');
+      }
+      if (name === 'cardCvc' && !/^\d{3,4}$/.test(v)) return setError(input, 'Enter the 3–4 digit code.');
+      return setError(input, '');
+    };
+
+    // summary + totals stay in sync with the cart drawer controls and options
+    $$('input[name="delivery"]', checkoutForm).forEach((el) => el.addEventListener('change', renderCheckout));
+    checkoutForm.elements.state.addEventListener('change', renderCheckout);
+
+    const billingSame = $('[data-billing-same]', checkoutForm);
+    const billingFields = $('[data-billing-fields]', checkoutForm);
+    const syncBilling = () => {
+      const same = billingSame.checked;
+      billingFields.hidden = same;
+      $$('input', billingFields).forEach((i) => { i.disabled = same; if (same) setError(i, ''); });
+    };
+    billingSame.addEventListener('change', syncBilling);
+    syncBilling();
+
+    // input formatting (values are only used for local validation; nothing is sent or stored)
+    checkoutForm.elements.cardNumber.addEventListener('input', (e) => {
+      const d = digits(e.target.value).slice(0, 19);
+      e.target.value = d.replace(/(.{4})/g, '$1 ').trim();
+    });
+    checkoutForm.elements.cardExpiry.addEventListener('input', (e) => {
+      const d = digits(e.target.value).slice(0, 4);
+      e.target.value = d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+    });
+    checkoutForm.elements.cardCvc.addEventListener('input', (e) => { e.target.value = digits(e.target.value).slice(0, 4); });
+    $$('input, select', checkoutForm).forEach((el) => el.addEventListener('blur', () => { if (el.name) validate(el); }));
+
+    const promoBtn = $('[data-promo-apply]');
+    if (promoBtn) promoBtn.addEventListener('click', () => {
+      const input = $('[data-promo-input]');
+      const msg = $('[data-promo-msg]');
+      msg.hidden = false;
+      msg.textContent = input.value.trim() ? 'That discount code is not valid.' : 'Enter a discount code first.';
+      if (input.value.trim()) input.focus();
+    });
+
+    checkoutForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      maintenance.hidden = true;
+      formMsg.hidden = true;
+      if (!cart.read().length) {
+        formMsg.textContent = 'Your cart is empty. Add an item before checking out.';
+        formMsg.hidden = false;
+        formMsg.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+        return;
+      }
+      const fields = $$('input, select', checkoutForm).filter((el) => el.name && el.type !== 'radio' && el.type !== 'checkbox');
+      let firstInvalid = null;
+      fields.forEach((el) => { if (!validate(el) && !firstInvalid) firstInvalid = el; });
+      if (firstInvalid) {
+        formMsg.textContent = 'Please check the highlighted fields and try again.';
+        formMsg.hidden = false;
+        firstInvalid.focus();
+        firstInvalid.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+        return;
+      }
+      // Checkout is paused for maintenance: never transmit or store payment details, never clear the cart.
+      maintenance.hidden = false;
+      maintenance.focus();
+      maintenance.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+      toast('Checkout is temporarily under maintenance — please try again later.');
+    });
+    renderCheckout();
   }
 
   /* ------------------------------------------------------ collection page */

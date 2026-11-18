@@ -82,7 +82,7 @@ const P = require(path.join(__dirname, '..', '..', 'src', 'data', 'products.json
     await go('/');
     await ev("(()=>{const f=document.querySelector('[data-signup]');f.querySelector('input').value='test@example.com';f.requestSubmit()})()"); await sleep(500);
     const msg = await ev("document.querySelector('.signup-form__msg').textContent");
-    check(/Welcome to the club/.test(msg), 'Newsletter signup shows the new welcome message', msg);
+    check(/is on the list/.test(msg), 'Newsletter signup confirms the address is on the list', msg);
 
     // --- phone menu
     await go('/', 390);

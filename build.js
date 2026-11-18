@@ -560,6 +560,111 @@ function policyPage(p) {
   return layout({ depth: 2, title: `${p.title} – ${SITE.name}`, body });
 }
 
+function checkoutPage() {
+  const depth = 1, R = rootFor(depth);
+  const states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
+  const stateOptions = states.map((s) => `<option value="${s}">${s}</option>`).join('');
+  const field = (id, name, label, attrs = '') => `<div class="co-field"><label for="${id}">${label}</label><input id="${id}" name="${name}" ${attrs}><p class="co-error" data-error-for="${name}" role="alert" hidden></p></div>`;
+  const body = `<section class="checkout">
+  <div class="checkout__head">
+    <h1 class="h2">Checkout</h1>
+    <p class="checkout__secure">${esc(BUSINESS.legalName)} · Secure checkout</p>
+    <ol class="checkout__steps">
+      <li><a href="#co-contact">1. Contact</a></li>
+      <li><a href="#co-shipping">2. Shipping</a></li>
+      <li><a href="#co-payment">3. Payment</a></li>
+    </ol>
+  </div>
+  <div class="checkout__grid">
+    <form class="checkout__main" data-checkout-form novalidate>
+      <div class="co-alert" data-checkout-maintenance role="alert" tabindex="-1" hidden>
+        <h2>Checkout is temporarily under maintenance</h2>
+        <p>Please try again later. No payment was taken, and your items are still in your cart.</p>
+        <p>Need help with an order? Email <a href="mailto:${BUSINESS.email}">${BUSINESS.email}</a> or call <a href="tel:${BUSINESS.phone.replace(/[^\d+]/g, '')}">${BUSINESS.phone}</a>.</p>
+      </div>
+
+      <section class="co-section" id="co-contact" aria-labelledby="co-contact-title">
+        <h2 class="co-section__title" id="co-contact-title"><span>1</span> Contact</h2>
+        <div class="co-grid">
+          ${field('co-email', 'email', 'Email address', 'type="email" autocomplete="email" autocapitalize="off" spellcheck="false" required')}
+          ${field('co-phone', 'phone', 'Phone', 'type="tel" autocomplete="tel" required')}
+        </div>
+      </section>
+
+      <section class="co-section" id="co-shipping" aria-labelledby="co-shipping-title">
+        <h2 class="co-section__title" id="co-shipping-title"><span>2</span> Shipping address</h2>
+        <div class="co-grid">
+          ${field('co-first-name', 'firstName', 'First name', 'type="text" autocomplete="given-name" required')}
+          ${field('co-last-name', 'lastName', 'Last name', 'type="text" autocomplete="family-name" required')}
+        </div>
+        ${field('co-address1', 'address1', 'Street address', 'type="text" autocomplete="address-line1" required')}
+        ${field('co-address2', 'address2', 'Apartment, suite, etc. (optional)', 'type="text" autocomplete="address-line2"')}
+        <div class="co-grid co-grid--3">
+          ${field('co-city', 'city', 'City', 'type="text" autocomplete="address-level2" required')}
+          <div class="co-field"><label for="co-state">State</label><select id="co-state" name="state" autocomplete="address-level1" required><option value="">Select state</option>${stateOptions}</select><p class="co-error" data-error-for="state" role="alert" hidden></p></div>
+          ${field('co-postal', 'postal', 'ZIP code', 'type="text" inputmode="numeric" autocomplete="postal-code" required')}
+        </div>
+        <div class="co-field"><label for="co-country">Country</label><select id="co-country" name="country" autocomplete="country-name"><option value="US" selected>United States</option></select></div>
+
+        <h3 class="co-subtitle">Delivery method</h3>
+        <div class="co-options" role="radiogroup" aria-label="Delivery method">
+          <label class="co-option"><input type="radio" name="delivery" value="standard" data-delivery="6.95" checked><span><strong>Standard delivery</strong><small>Prepared in ${BUSINESS.handlingDays} business days · ${BUSINESS.transitDays} business days in transit</small></span><b>$6.95</b></label>
+          <label class="co-option"><input type="radio" name="delivery" value="express" data-delivery="14.95"><span><strong>Express delivery</strong><small>Prepared in ${BUSINESS.handlingDays} business days · 1–2 business days in transit</small></span><b>$14.95</b></label>
+        </div>
+      </section>
+
+      <section class="co-section" id="co-payment" aria-labelledby="co-payment-title">
+        <h2 class="co-section__title" id="co-payment-title"><span>3</span> Payment</h2>
+        <p class="co-note">All transactions are encrypted. Card purchases appear as <strong>${esc(BUSINESS.statementDescriptor)}</strong>. We accept ${esc(BUSINESS.paymentMethods)}.</p>
+        <div class="co-cards" aria-hidden="true"><span>VISA</span><span>Mastercard</span><span>AMEX</span><span>Discover</span></div>
+        ${field('co-card-name', 'cardName', 'Name on card', 'type="text" autocomplete="cc-name" required')}
+        ${field('co-card-number', 'cardNumber', 'Card number', 'type="text" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" required')}
+        <div class="co-grid">
+          ${field('co-card-expiry', 'cardExpiry', 'Expiry (MM/YY)', 'type="text" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY" required')}
+          ${field('co-card-cvc', 'cardCvc', 'Security code', 'type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="CVC" required')}
+        </div>
+        <label class="co-check"><input type="checkbox" name="billingSame" checked data-billing-same> Billing address is the same as shipping</label>
+        <div class="co-billing" data-billing-fields hidden>
+          ${field('co-billing-address', 'billingAddress', 'Billing street address', 'type="text" autocomplete="billing address-line1"')}
+          <div class="co-grid co-grid--3">
+            ${field('co-billing-city', 'billingCity', 'Billing city', 'type="text" autocomplete="billing address-level2"')}
+            ${field('co-billing-state', 'billingState', 'Billing state', 'type="text" autocomplete="billing address-level1" placeholder="MI"')}
+            ${field('co-billing-postal', 'billingPostal', 'Billing ZIP', 'type="text" inputmode="numeric" autocomplete="billing postal-code"')}
+          </div>
+        </div>
+        <p class="co-form-msg" data-checkout-msg role="alert" hidden></p>
+        <button class="btn co-pay" type="submit" data-pay-button>Pay now</button>
+        <p class="co-fineprint">By clicking Pay now, you agree to our <a href="${R}policies/terms-of-service/">Terms of Service</a>, <a href="${R}policies/shipping-policy/">Shipping Policy</a>, <a href="${R}policies/refund-policy/">Returns &amp; Refunds</a> and <a href="${R}policies/payments-and-billing/">Payments &amp; Billing</a>.</p>
+        <a class="co-return" href="${R}collections/all/">&larr; Continue shopping</a>
+      </section>
+    </form>
+
+    <aside class="checkout__summary" aria-labelledby="co-summary-title">
+      <h2 class="h4" id="co-summary-title">Order summary</h2>
+      <div data-checkout-lines></div>
+      <div class="co-empty" data-checkout-empty hidden>
+        <p>Your cart is empty.</p>
+        <a class="btn btn--sm" href="${R}collections/all/">Continue shopping</a>
+      </div>
+      <div class="co-promo">
+        <label class="visually-hidden" for="co-promo">Discount code</label>
+        <input id="co-promo" type="text" placeholder="Discount code" data-promo-input>
+        <button class="btn btn--sm" type="button" data-promo-apply>Apply</button>
+        <p class="co-promo-msg" data-promo-msg role="status" aria-live="polite" hidden></p>
+      </div>
+      <dl class="co-totals" data-checkout-totals></dl>
+      <p class="co-note">Tax is estimated here and confirmed before payment. Shipping follows our <a href="${R}policies/shipping-policy/">Shipping Policy</a>.</p>
+      <ul class="co-assurances">
+        <li>Ships to ${esc(BUSINESS.serviceArea)}</li>
+        <li>Returns within ${BUSINESS.returnsWindowDays} days of delivery</li>
+        <li>Support: ${esc(BUSINESS.supportHours)}</li>
+      </ul>
+    </aside>
+  </div>
+</section>`;
+  return layout({ depth, title: `Checkout – ${SITE.name}`, desc: `Checkout for ${SITE.name}.`, body, noSignup: true });
+}
+
 function searchPage() {
   const depth = 1, R = rootFor(depth);
   const body = `<section class="search-page">
@@ -642,10 +747,11 @@ function build() {
   write('pages/faq/index.html', faqPage());
   write('pages/contact/index.html', contactPage());
   policies.forEach((p) => write(`policies/${p.slug}/index.html`, policyPage(p)));
+  write('checkout/index.html', checkoutPage());
   write('search/index.html', searchPage());
   write('404.html', notFoundPage());
 
-  const pages = 1 + collections.length + products.length + 3 + policies.length + 2;
+  const pages = 1 + collections.length + products.length + 4 + policies.length + 2;
   console.log(`Built ${pages} pages into dist/ in ${Date.now() - t0}ms`);
 }
 

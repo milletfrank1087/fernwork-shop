@@ -366,7 +366,7 @@
     const deliveryEl = $('input[name="delivery"]:checked', checkoutForm);
     const shipping = lines.length && deliveryEl ? Number(deliveryEl.dataset.delivery || 0) : 0;
     const state = checkoutForm.elements.state ? checkoutForm.elements.state.value : '';
-    const taxRate = state === 'MI' ? 0.06 : 0;
+    const taxRate = state === checkoutForm.dataset.taxState ? Number(checkoutForm.dataset.taxRate) : 0;
     const tax = Math.round(subtotal * taxRate * 100) / 100;
     const total = subtotal + shipping + tax;
 
@@ -388,7 +388,7 @@
     totalsEl.innerHTML = `
       <div><dt>Subtotal</dt><dd>${money(subtotal)}</dd></div>
       <div><dt>Shipping</dt><dd>${lines.length ? money(shipping) : '—'}</dd></div>
-      <div><dt>Estimated tax${taxRate ? ' (MI 6%)' : ''}</dt><dd>${money(tax)}</dd></div>
+      <div><dt>Estimated tax${taxRate ? ` (${checkoutForm.dataset.taxLabel})` : ''}</dt><dd>${money(tax)}</dd></div>
       <div class="co-totals__total"><dt>Total</dt><dd>${money(total)}</dd></div>`;
     payBtn.disabled = !lines.length;
     payBtn.textContent = lines.length ? `Pay ${money(total)}` : 'Pay now';

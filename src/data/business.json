@@ -29,5 +29,8 @@
   "goodsLine": "houseplants, planters and home goods",
   "packingLine": "Plants travel in a fitted sleeve and moist wrap. In cold months we may hold a shipment rather than risk frost; you will be told if that happens. Open the parcel promptly and water on arrival.",
   "usedCaveat": "a plant that has clearly been repotted or pruned counts as used",
-  "goodsCaveat": "Houseplants are living goods and vary in leaf count and shape; the images show the size class you receive."
+  "goodsCaveat": "Houseplants are living goods and vary in leaf count and shape; the images show the size class you receive.",
+  "taxState": "MI",
+  "taxRate": "0.06",
+  "taxLabel": "MI 6%"
 }

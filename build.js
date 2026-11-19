@@ -576,7 +576,7 @@ function checkoutPage() {
     </ol>
   </div>
   <div class="checkout__grid">
-    <form class="checkout__main" data-checkout-form novalidate>
+    <form class="checkout__main" data-checkout-form data-tax-state="${B.taxState}" data-tax-rate="${B.taxRate}" data-tax-label="${B.taxLabel}" novalidate>
       <div class="co-alert" data-checkout-maintenance role="alert" tabindex="-1" hidden>
         <h2>Checkout is temporarily under maintenance</h2>
         <p>Please try again later. No payment was taken, and your items are still in your cart.</p>
@@ -628,7 +628,7 @@ function checkoutPage() {
           ${field('co-billing-address', 'billingAddress', 'Billing street address', 'type="text" autocomplete="billing address-line1"')}
           <div class="co-grid co-grid--3">
             ${field('co-billing-city', 'billingCity', 'Billing city', 'type="text" autocomplete="billing address-level2"')}
-            ${field('co-billing-state', 'billingState', 'Billing state', 'type="text" autocomplete="billing address-level1" placeholder="MI"')}
+            ${field('co-billing-state', 'billingState', 'Billing state', 'type="text" autocomplete="billing address-level1" placeholder="${B.state}"')}
             ${field('co-billing-postal', 'billingPostal', 'Billing ZIP', 'type="text" inputmode="numeric" autocomplete="billing postal-code"')}
           </div>
         </div>

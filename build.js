@@ -257,6 +257,7 @@ function layout(o) {
 <title>${esc(o.title)}</title>
 <meta name="description" content="${esc(desc)}">
 <meta name="theme-color" content="#ffffff">
+${B.facebookDomainVerification ? `<meta name="facebook-domain-verification" content="${B.facebookDomainVerification}">` : ''}
 <meta property="og:site_name" content="${SITE.name}">
 <meta property="og:title" content="${esc(o.title)}">
 <meta property="og:description" content="${esc(desc)}">
